@@ -1,0 +1,16 @@
+pytorch-lightning
+test-tube
+opencv-python
+matplotlib
+jupyter
+transformers
+
+# for mesh
+PyMCubes
+pycollada
+trimesh
+pyglet
+
+# for point cloud
+plyfile
+open3d
