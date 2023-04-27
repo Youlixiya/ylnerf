@@ -199,8 +199,8 @@ if __name__ == '__main__':
     hparams = get_opts()
     system = NeRFSystem(hparams)
     checkpoint_callback = ModelCheckpoint(dirpath=f'ckpts/{hparams.exp_name}',
-                                          filename='{epoch}-{val_loss}',
-                                          monitor='val_loss',
+                                          filename='{epoch}-{val_mean_psnr}',
+                                          monitor='val_mean_psnr',
                                           mode='min',
                                           save_top_k=3,)
 
