@@ -160,11 +160,19 @@ class NeRFSystem(LightningModule):
         typ = 'fine' if 'rgb_fine' in results else 'coarse'
     
         if batch_nb == 0:
+            samples_dir = os.path.join(self.hparams.exp_name, 'samples')
+            rgb_samples_dir = os.path.join(samples_dir, 'results_rgb')
+            deep_samples_dir = os.path.join(samples_dir, 'results_depth')
+            if not os.path.exists(samples_dir): os.makedirs(samples_dir)
+            if not os.path.exists(rgb_samples_dir): os.makedirs(rgb_samples_dir)
+            if not os.path.exists(deep_samples_dir): os.makedirs(deep_samples_dir)
             H, W = self.hparams.img_wh
-            img = numpy_to_pil(results[f'rgb_{typ}'].view(H, W, 3).clamp(0, 1).cpu().numpy())[0]
-            img_gt = numpy_to_pil(rgbs.view(H, W, 3).clamp(0, 1).cpu().numpy())[0]
-            depth = numpy_to_pil(visualize_depth(results[f'depth_{typ}'].view(H, W)).permute(1, 2, 0).clamp(0, 1).cpu().numpy())[0]
-
+            img = numpy_to_pil((results[f'rgb_{typ}']).view(H, W, 3).clamp(0, 1).cpu().numpy())[0]
+            img_gt = numpy_to_pil((rgbs.view(H, W, 3)).clamp(0, 1).cpu().numpy())[0]
+            depth = numpy_to_pil((visualize_depth(results[f'depth_{typ}'].view(H, W))).permute(1, 2, 0).clamp(0, 1).cpu().numpy())[0]
+            img.save(os.path.join(rgb_samples_dir, f'rgb_{typ}_{self.trainer.current_epoch}.png'))
+            img_gt.save(os.path.join(samples_dir, 'img_gt.png'))
+            depth.save(os.path.join(deep_samples_dir, f'depth_{typ}_{self.trainer.current_epoch}.png'))
             if self.hparams.use_wandb:
                 wandb.log({'img_gt' : wandb.Image(img_gt),
                            'img' : wandb.Image(img),
