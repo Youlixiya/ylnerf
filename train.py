@@ -222,7 +222,7 @@ if __name__ == '__main__':
                       callbacks=checkpoint_callback,
                       logger=wandb_logger,
                       devices=hparams.devices,
-                      num_sanity_val_steps=1,
+                      # num_sanity_val_steps=1,
                       benchmark=True)
     if hparams.ckpt_path:
         trainer.fit(system, ckpt_path=hparams.ckpt_path)
