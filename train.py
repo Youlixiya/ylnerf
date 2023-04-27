@@ -218,10 +218,13 @@ if __name__ == '__main__':
     else:
         wandb_logger=None
 
-    trainer = Trainer(max_epochs=hparams.num_epochs,
+    trainer = Trainer(accelerator='auto',
+                      max_epochs=hparams.num_epochs,
                       callbacks=checkpoint_callback,
                       logger=wandb_logger,
                       devices=hparams.devices,
+                      precision='16',
+                      log_every_n_steps=1,
                       # num_sanity_val_steps=1,
                       benchmark=True)
     if hparams.ckpt_path:
