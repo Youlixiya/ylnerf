@@ -1,3 +1,4 @@
+import os
 from opt import get_opts
 from collections import defaultdict
 from PIL import Image
