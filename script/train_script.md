@@ -5,5 +5,5 @@ python train.py --root_dir data/nerf_llff_data/flower --dataset_name llff --img_
 ```
 ```shell
 #lego
-python3 train.py --root_dir data/nerf_synthetic/lego --dataset_name blender --img_wh 800 800 --batch_size 10240 --num_epochs 10 --exp_name lego --workers 16 --use_wandb --project_name nerf_lego --devices 2
+python3 train.py --root_dir data/nerf_synthetic/lego --dataset_name blender --img_wh 400 400 --batch_size 4096 --num_epochs 10 --exp_name lego --workers 16 --use_wandb --project_name nerf_lego --devices 2
 ```

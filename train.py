@@ -78,16 +78,17 @@ class NeRFSystem(LightningModule):
             results[k] = torch.cat(v, 0)
         return results
 
-    def prepare_data(self):
-        self.dataset = dataset_dict[self.hparams.dataset_name]
-        self.kwargs = {'root_dir': self.hparams.root_dir,
-                  'img_wh': tuple(self.hparams.img_wh)}
-        if self.hparams.dataset_name == 'llff':
-            self.kwargs['spheric_poses'] = self.hparams.spheric_poses
-            self.kwargs['val_num'] = self.hparams.devices
+    # def prepare_data(self):
+    #
     def setup(self, stage: str) -> None:
-        self.train_dataset = self.dataset(split='train', **self.kwargs)
-        self.val_dataset = self.dataset(split='val', **self.kwargs)
+        dataset = dataset_dict[self.hparams.dataset_name]
+        kwargs = {'root_dir': self.hparams.root_dir,
+                       'img_wh': tuple(self.hparams.img_wh)}
+        if self.hparams.dataset_name == 'llff':
+            kwargs['spheric_poses'] = self.hparams.spheric_poses
+            kwargs['val_num'] = self.hparams.devices
+        self.train_dataset = dataset(split='train', **kwargs)
+        self.val_dataset = dataset(split='val', **kwargs)
 
     def configure_optimizers(self):
         self.optimizer = eval(self.hparams.optimizer)(self.parameters(), lr=self.hparams.lr,weight_decay = self.hparams.weight_decay)
