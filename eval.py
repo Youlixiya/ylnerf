@@ -22,6 +22,8 @@ def get_opts():
     parser.add_argument('--root_dir', type=str,
                         default='data/nerf_llff_data/flower',
                         help='root directory of dataset')
+    parser.add_argument('--exp_name', type=str, default='flower',
+                        help='exp name')
     parser.add_argument('--dataset_name', type=str, default='llff',
                         choices=['blender', 'llff'],
                         help='which dataset to validate')
@@ -59,10 +61,9 @@ def get_opts():
 def batched_inference(models, embeddings,
                       rays, N_samples, N_importance, use_disp,
                       chunk,
-                      white_back):
+                      white_back=False):
     """Do batched inference on rays using chunk."""
     B = rays.shape[0]
-    chunk = 1024*32
     results = defaultdict(list)
     for i in range(0, B, chunk):
         rendered_ray_chunks = \
@@ -76,6 +77,7 @@ def batched_inference(models, embeddings,
                         N_importance,
                         chunk,
                         dataset.white_back,
+                        white_back=white_back,
                         test_time=True)
 
         for k, v in rendered_ray_chunks.items():
@@ -111,7 +113,7 @@ if __name__ == "__main__":
 
     imgs = []
     psnrs = []
-    dir_name = f'results/{args.dataset_name}/{args.scene_name}'
+    dir_name = f'{args.exp_name}/results/{args.dataset_name}/{args.scene_name}'
     os.makedirs(dir_name, exist_ok=True)
 
     for i in tqdm(range(len(dataset))):
