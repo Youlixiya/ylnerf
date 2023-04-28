@@ -23,7 +23,7 @@ from metrics import *
 from torchmetrics import MeanMetric
 # pytorch-lightning
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningModule, Trainer, seed_everything
 from pytorch_lightning.loggers import WandbLogger
 
 
@@ -203,6 +203,7 @@ class NeRFSystem(LightningModule):
 
 if __name__ == '__main__':
     hparams = get_opts()
+    seed_everything(hparams.seed)
     if hparams.use_wandb:
         if hparams.wandb_id:
             wandb_logger = WandbLogger(

@@ -60,6 +60,8 @@ def get_opts():
                         help='experiment name')
     parser.add_argument('--workers', type=int, default=0,
                         help='the number of dataloader workers')
+    parser.add_argument('--seed', type=int, default=0,
+                        help='the random seed')
     parser.add_argument('--use_wandb', default=False, action="store_true",
                         help='whether to use wandb as logger')
     parser.add_argument('--project_name', type=str, default="nerf",
