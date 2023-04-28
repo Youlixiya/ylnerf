@@ -20,16 +20,16 @@ torch.backends.cudnn.benchmark = True
 def get_opts():
     parser = ArgumentParser()
     parser.add_argument('--root_dir', type=str,
-                        default='/home/ubuntu/data/nerf_example_data/nerf_synthetic/lego',
+                        default='data/nerf_llff_data/flower',
                         help='root directory of dataset')
-    parser.add_argument('--dataset_name', type=str, default='blender',
+    parser.add_argument('--dataset_name', type=str, default='llff',
                         choices=['blender', 'llff'],
                         help='which dataset to validate')
     parser.add_argument('--scene_name', type=str, default='test',
                         help='scene name, used as output folder name')
     parser.add_argument('--split', type=str, default='test',
                         help='test or test_train')
-    parser.add_argument('--img_wh', nargs="+", type=int, default=[800, 800],
+    parser.add_argument('--img_wh', nargs="+", type=int, default=[756, 1008],
                         help='resolution (img_w, img_h) of the image')
     parser.add_argument('--spheric_poses', default=False, action="store_true",
                         help='whether images are taken in spheric poses (for llff)')
@@ -40,13 +40,13 @@ def get_opts():
                         help='number of additional fine samples')
     parser.add_argument('--use_disp', default=False, action="store_true",
                         help='use disparity depth sampling')
-    parser.add_argument('--chunk', type=int, default=32*1024*4,
+    parser.add_argument('--chunk', type=int, default=32*1024,
                         help='chunk size to split the input to avoid OOM')
 
-    parser.add_argument('--ckpt_path', type=str, required=True,
+    parser.add_argument('--ckpt_path', type=str, default='flower/ckpts/epoch=2-val_mean_psnr=19.28261947631836.ckpt',
                         help='pretrained checkpoint path to load')
 
-    parser.add_argument('--save_depth', default=False, action="store_true",
+    parser.add_argument('--save_depth', default=True, action="store_true",
                         help='whether to save depth prediction')
     parser.add_argument('--depth_format', type=str, default='pfm',
                         choices=['pfm', 'bytes'],
