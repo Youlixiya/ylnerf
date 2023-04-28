@@ -143,12 +143,12 @@ class NeRFSystem(LightningModule):
     def on_train_epoch_end(self) -> None:
         mean_loss = self.train_loss.compute()
         mean_psnr = self.train_psnr.compute()
+        self.log('train_mean_loss', mean_loss, prog_bar=True, on_step=True, on_epoch=False,
+                 logger=True if self.hparams.use_wandb else False)
+        self.log('train_mean_psnr', mean_psnr, prog_bar=True, on_step=True, on_epoch=False,
+                 logger=True if self.hparams.use_wandb else False)
         self.train_loss.reset()
         self.train_psnr.reset()
-        self.log('train_mean_loss', mean_loss, prog_bar=True, on_step=False, on_epoch=True,
-                 logger=True if self.hparams.use_wandb else False)
-        self.log('train_mean_psnr', mean_psnr, prog_bar=True, on_step=False, on_epoch=True,
-                 logger=True if self.hparams.use_wandb else False)
     def validation_step(self, batch, batch_nb):
         rays, rgbs = self.decode_batch(batch)
         rays = rays.squeeze() # (H*W, 3)
@@ -193,12 +193,12 @@ class NeRFSystem(LightningModule):
     def on_validation_epoch_end(self) -> None:
         valid_mean_loss = self.train_loss.compute()
         valid_mean_psnr = self.train_psnr.compute()
-        self.train_loss.reset()
-        self.train_psnr.reset()
         self.log('val_mean_loss', valid_mean_loss, prog_bar=True, on_step=False, on_epoch=True,
                  logger=True if self.hparams.use_wandb else False)
         self.log('val_mean_psnr', valid_mean_psnr, prog_bar=True, on_step=False, on_epoch=True,
                  logger=True if self.hparams.use_wandb else False)
+        self.train_loss.reset()
+        self.train_psnr.reset()
 
 
 if __name__ == '__main__':
@@ -232,7 +232,7 @@ if __name__ == '__main__':
                       devices=hparams.devices,
                       precision='16',
                       log_every_n_steps=1,
-                      # num_sanity_val_steps=1,
+                      num_sanity_val_steps=0,
                       benchmark=True)
     if hparams.ckpt_path:
         trainer.fit(system, ckpt_path=hparams.ckpt_path)
