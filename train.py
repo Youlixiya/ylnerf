@@ -123,7 +123,7 @@ class NeRFSystem(LightningModule):
         loss = self.loss(results, rgbs)
         self.train_loss.update(loss)
         self.log('train_loss', self.train_loss(loss), prog_bar=True, on_step=True, on_epoch=False,
-                 logger=True if self.hparams.use_wandb else False)
+                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
         typ = 'fine' if 'rgb_fine' in results else 'coarse'
         optimizer.zero_grad()
         self.manual_backward(loss)
@@ -137,7 +137,7 @@ class NeRFSystem(LightningModule):
             self.train_psnr.update(psnr_)
             # log['train/psnr'] = psnr_
             self.log('train_psnr', psnr_, prog_bar=True, on_step=True, on_epoch=False,
-                     logger=True if self.hparams.use_wandb else False)
+                     logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
 
         return loss
     def on_train_epoch_end(self) -> None:
@@ -146,9 +146,9 @@ class NeRFSystem(LightningModule):
         self.train_loss.reset()
         self.train_psnr.reset()
         self.log('train_mean_loss', mean_loss, prog_bar=True, on_step=False, on_epoch=True,
-                 logger=True if self.hparams.use_wandb else False)
+                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
         self.log('train_mean_psnr', mean_psnr, prog_bar=True, on_step=False, on_epoch=True,
-                 logger=True if self.hparams.use_wandb else False)
+                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
     def validation_step(self, batch, batch_nb):
         rays, rgbs = self.decode_batch(batch)
         rays = rays.squeeze() # (H*W, 3)
@@ -157,7 +157,7 @@ class NeRFSystem(LightningModule):
         valid_loss = self.loss(results, rgbs)
         self.valid_loss.update(valid_loss)
         self.log('val_loss', valid_loss, prog_bar=True, on_step=True, on_epoch=False,
-                 logger=True if self.hparams.use_wandb else False)
+                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
         typ = 'fine' if 'rgb_fine' in results else 'coarse'
     
         if batch_nb == 0:
@@ -183,9 +183,7 @@ class NeRFSystem(LightningModule):
         valid_psnr = psnr(results[f'rgb_{typ}'], rgbs)
         self.valid_psnr.update(valid_psnr)
         self.log('val_psnr', valid_psnr, prog_bar=True, on_step=True, on_epoch=False,
-                 logger=True if self.hparams.use_wandb else False)
-        return {'val_loss' : self.loss(results, rgbs),
-                'val_psnr' : psnr(results[f'rgb_{typ}'], rgbs)}
+                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
 
     def on_validation_epoch_end(self) -> None:
         valid_mean_loss = self.train_loss.compute()
@@ -193,9 +191,9 @@ class NeRFSystem(LightningModule):
         self.train_loss.reset()
         self.train_psnr.reset()
         self.log('val_mean_loss', valid_mean_loss, prog_bar=True, on_step=False, on_epoch=True,
-                 logger=True if self.hparams.use_wandb else False)
+                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
         self.log('val_mean_psnr', valid_mean_psnr, prog_bar=True, on_step=False, on_epoch=True,
-                 logger=True if self.hparams.use_wandb else False)
+                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
 
 
 if __name__ == '__main__':
@@ -204,9 +202,8 @@ if __name__ == '__main__':
     checkpoint_callback = ModelCheckpoint(dirpath=f'{hparams.exp_name}/ckpts',
                                           filename='{epoch}-{val_mean_psnr}',
                                           monitor='val_mean_psnr',
-                                          mode='min',
+                                          mode='max',
                                           save_top_k=3,)
-
     if hparams.use_wandb:
         if hparams.wandb_id:
             wandb_logger = WandbLogger(

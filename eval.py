@@ -61,7 +61,7 @@ def get_opts():
 def batched_inference(models, embeddings,
                       rays, N_samples, N_importance, use_disp,
                       chunk,
-                      white_back=False):
+                      white_back):
     """Do batched inference on rays using chunk."""
     B = rays.shape[0]
     results = defaultdict(list)
@@ -76,8 +76,7 @@ def batched_inference(models, embeddings,
                         0,
                         N_importance,
                         chunk,
-                        dataset.white_back,
-                        white_back=white_back,
+                        white_back,
                         test_time=True)
 
         for k, v in rendered_ray_chunks.items():
@@ -144,7 +143,7 @@ if __name__ == "__main__":
             img_gt = rgbs.view(h, w, 3)
             psnrs += [metrics.psnr(img_gt, img_pred).item()]
         
-    imageio.mimsave(os.path.join(dir_name, f'{args.scene_name}.gif'), imgs, fps=30)
+    imageio.mimsave(os.path.join(dir_name, f'{args.scene_name}.gif'), imgs, duration=12)
     
     if psnrs:
         mean_psnr = np.mean(psnrs)
