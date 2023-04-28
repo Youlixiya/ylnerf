@@ -29,10 +29,10 @@ from pytorch_lightning.loggers import WandbLogger
 
 class NeRFSystem(LightningModule):
 
-    def __init__(self, hparams):
+    def __init__(self, hparams, logger):
         super(NeRFSystem, self).__init__()
         self.save_hyperparameters(hparams)
-
+        self.wandb_logger = logger
         self.loss = loss_dict[hparams.loss_type]()
 
         self.embedding_xyz = Embedding(3, 10) # 10 is the default number
@@ -123,7 +123,7 @@ class NeRFSystem(LightningModule):
         loss = self.loss(results, rgbs)
         self.train_loss.update(loss)
         self.log('train_loss', self.train_loss(loss), prog_bar=True, on_step=True, on_epoch=False,
-                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
+                 logger=True if self.hparams.use_wandb else False)
         typ = 'fine' if 'rgb_fine' in results else 'coarse'
         optimizer.zero_grad()
         self.manual_backward(loss)
@@ -137,7 +137,7 @@ class NeRFSystem(LightningModule):
             self.train_psnr.update(psnr_)
             # log['train/psnr'] = psnr_
             self.log('train_psnr', psnr_, prog_bar=True, on_step=True, on_epoch=False,
-                     logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
+                     logger=True if self.hparams.use_wandb else False)
 
         return loss
     def on_train_epoch_end(self) -> None:
@@ -146,9 +146,9 @@ class NeRFSystem(LightningModule):
         self.train_loss.reset()
         self.train_psnr.reset()
         self.log('train_mean_loss', mean_loss, prog_bar=True, on_step=False, on_epoch=True,
-                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
+                 logger=True if self.hparams.use_wandb else False)
         self.log('train_mean_psnr', mean_psnr, prog_bar=True, on_step=False, on_epoch=True,
-                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
+                 logger=True if self.hparams.use_wandb else False)
     def validation_step(self, batch, batch_nb):
         rays, rgbs = self.decode_batch(batch)
         rays = rays.squeeze() # (H*W, 3)
@@ -157,7 +157,7 @@ class NeRFSystem(LightningModule):
         valid_loss = self.loss(results, rgbs)
         self.valid_loss.update(valid_loss)
         self.log('val_loss', valid_loss, prog_bar=True, on_step=True, on_epoch=False,
-                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
+                 logger=True if self.hparams.use_wandb else False)
         typ = 'fine' if 'rgb_fine' in results else 'coarse'
     
         if batch_nb == 0:
@@ -175,15 +175,20 @@ class NeRFSystem(LightningModule):
             img_gt.save(os.path.join(samples_dir, 'img_gt.png'))
             depth.save(os.path.join(deep_samples_dir, f'depth_{typ}_{self.trainer.current_epoch}.png'))
             if self.hparams.use_wandb:
-                wandb.log({'img_gt' : wandb.Image(img_gt),
-                           'img' : wandb.Image(img),
-                           'depth' : wandb.Image(depth)})
+                cur_epoch = self.trainer.current_epoch
+                self.wandb_logger.log_image(key="samples", images=[img_gt, img, depth],
+                                            caption=[f'img_gt_{cur_epoch}', f'img_{cur_epoch}', f'depth_{cur_epoch}'])
+                # self.wandb_logger.log_image(key="img", images=img, caption=f'Epoch {self.trainer.current_epoch}')
+                # self.wandb_logger.log_image(key="depth", images=depth, caption=f'Epoch {self.trainer.current_epoch}')
+                # wandb.log({'img_gt' : wandb.Image(img_gt, caption=f'Epoch {self.trainer.current_epoch}'),
+                #            'img' : wandb.Image(img, caption=f'Epoch {self.trainer.current_epoch}'),
+                #            'depth' : wandb.Image(depth, caption=f'Epoch {self.trainer.current_epoch}')})
 
         # log['val_psnr'] = psnr(results[f'rgb_{typ}'], rgbs)
         valid_psnr = psnr(results[f'rgb_{typ}'], rgbs)
         self.valid_psnr.update(valid_psnr)
         self.log('val_psnr', valid_psnr, prog_bar=True, on_step=True, on_epoch=False,
-                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
+                 logger=True if self.hparams.use_wandb else False)
 
     def on_validation_epoch_end(self) -> None:
         valid_mean_loss = self.train_loss.compute()
@@ -191,19 +196,13 @@ class NeRFSystem(LightningModule):
         self.train_loss.reset()
         self.train_psnr.reset()
         self.log('val_mean_loss', valid_mean_loss, prog_bar=True, on_step=False, on_epoch=True,
-                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
+                 logger=True if self.hparams.use_wandb else False)
         self.log('val_mean_psnr', valid_mean_psnr, prog_bar=True, on_step=False, on_epoch=True,
-                 logger=True if self.hparams.use_wandb else False, sync_dist=True if self.hparams.devices > 1 else False)
+                 logger=True if self.hparams.use_wandb else False)
 
 
 if __name__ == '__main__':
     hparams = get_opts()
-    system = NeRFSystem(hparams)
-    checkpoint_callback = ModelCheckpoint(dirpath=f'{hparams.exp_name}/ckpts',
-                                          filename='{epoch}-{val_mean_psnr}',
-                                          monitor='val_mean_psnr',
-                                          mode='max',
-                                          save_top_k=3,)
     if hparams.use_wandb:
         if hparams.wandb_id:
             wandb_logger = WandbLogger(
@@ -217,6 +216,13 @@ if __name__ == '__main__':
                     log_model=True)
     else:
         wandb_logger=None
+    system = NeRFSystem(hparams, wandb_logger)
+    checkpoint_callback = ModelCheckpoint(dirpath=f'{hparams.exp_name}/ckpts',
+                                          filename='{epoch}-{val_mean_psnr}',
+                                          monitor='val_mean_psnr',
+                                          mode='max',
+                                          save_top_k=3,)
+
 
     trainer = Trainer(accelerator='auto',
                       max_epochs=hparams.num_epochs,
